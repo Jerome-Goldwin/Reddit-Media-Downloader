@@ -1,0 +1,78 @@
+#!/bin/bash
+lres1=0
+lres2=0
+lres3=0
+direct_link () {
+	TMP1=$(wget -q -nv -O- "$1" | awk 'BEGIN {RS=" "; FS="\""} /content-href/ {print $2}')
+	if [ -n "$TMP1" ]; then
+		echo "Direct link found"
+		echo -e "\nDownloading: $TMP1\n"
+		if [[ $TMP1 =~ v\.redd\.it ]]; then
+			gallery-dl -D "$DLDIR" -f "$(gallery-dl -K "$1" | awk 'BEGIN {FS="/";RS="\n";OFS="_"} /\/comments\// {print $5,$6; exit}')" "$1"
+		elif [[ $TMP1 =~ \/gallery\/ ]]; then
+			gallery-dl -D "$DLDIR" -f "$(gallery-dl --sleep 2.0-3.0 -K "$1" 2> /dev/null | awk 'BEGIN {FS="/";RS="\n";OFS="_"} /\/comments\// {print $5,$6; exit}')_{num}.{extension} 2> /dev/null" "$TMP1" 2> /dev/null
+		else
+			gallery-dl -D "$DLDIR" "$TMP1"
+		fi
+		return 0
+	else
+		return 1
+	fi
+}
+
+deep_link () {
+        TMP2=$(wget -q -nv -O- "$1" | awk 'BEGIN {RS=" "; FS="\""} /src="https:.*preview.*-.*(jpg|png|jpeg|gif)/ {print $2}' | uniq | sed -E 's/\&amp\;/\&/g' | sed -E 's/preview/i/')
+	if [ -n "$TMP2" ]; then
+		for url in $TMP2; do
+		    echo "Deep link found"
+		    echo "Downloading: $(echo "$url" | awk 'BEGIN { FS="\""; FS="?" } {print $1}')"
+		    gallery-dl -D "$DLDIR" -f "$(gallery-dl -q -K "$1" | awk 'BEGIN {FS="/";RS="\n";OFS="_"} /\/comments\// {print $5,$6; exit}').{extension}" "$url"
+	    	done
+	    	return 0
+	else
+		return 1
+        fi
+}
+
+very_deep_link () {
+	if [ -n "$1" ]; then
+		TMP3=$(wget -nv -q -O-  "$1" | awk ' BEGIN { FS="\"";RS="\n" } /shreddit-redirect/ { print "https://www.reddit.com"$2 } ')
+		echo "Very deep link found"
+		direct_link "$TMP3"
+		return 0
+	else
+		return 1
+	fi
+}
+
+if [ -n "$2" ]; then
+	DLDIR="$2"
+else
+	DLDIR="."
+fi
+
+
+if [ -n "$1" ]; then
+	direct_link "$1"
+	lres1=$?
+	if [ "$lres1" != 0 ]; then
+		deep_link "$1"
+		lres2=$?
+		if [ "$lres2" != 0 ]; then
+			very_deep_link "$1"
+			lres3=$?
+		else
+			exit 0
+		fi
+	else
+		exit 0
+	fi
+	if [ "$lres1" != 0 ] && [ "$lres2" != 0 ] && [ "$lres3" != 0 ]; then
+		echo -e "\n!SOMETHING GONE WRONG!\n"
+	else
+		exit 0
+	fi
+else
+	echo "No link given"
+	exit 0
+fi
