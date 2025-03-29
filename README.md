@@ -17,7 +17,7 @@ Clone the repository and navigate to the project folder:
 
 git clone https://github.com/yourusername/reddit-media-downloader.git
 cd reddit-media-downloader
-chmod +x reddit_downloader.sh
+chmod +x rdt
 
 🚀 Usage
 
