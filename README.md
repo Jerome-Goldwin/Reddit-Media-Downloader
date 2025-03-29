@@ -23,7 +23,7 @@ chmod +x reddit_downloader.sh
 
 Run the script with a Reddit post URL as an argument:
 
-./reddit_downloader.sh "https://www.reddit.com/r/example/comments/postid/"
+./rdt "https://www.reddit.com/r/example/comments/postid/"
 
 By default, downloaded media will be saved to a specified directory (DLDIR).
 
